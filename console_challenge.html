@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Console Challenge — Mohammad Salman Allai</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:      #0e1117;
+      --surface: #161b25;
+      --panel:   #1c2333;
+      --border:  rgba(255,255,255,0.07);
+      --green:   #3ddc84;
+      --yellow:  #f9e05b;
+      --blue:    #79b8ff;
+      --coral:   #ff7b72;
+      --purple:  #d2a8ff;
+      --muted:   #586069;
+      --text:    #e6edf3;
+      --font:    'JetBrains Mono', monospace;
+      --head:    'Syne', sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;line-height:1.6}
+
+    /* PAGE HEADER */
+    .page-header{border-bottom:1px solid var(--border);padding:1.2rem 2rem;display:flex;align-items:center;justify-content:space-between;background:var(--surface)}
+    .page-header h1{font-family:var(--head);font-size:1rem;font-weight:800;letter-spacing:-0.02em}
+    .page-header h1 span{color:var(--green)}
+    .header-meta{font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase}
+
+    /* LAYOUT */
+    .layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 55px)}
+
+    /* SIDEBAR */
+    .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:1.25rem 0;overflow-y:auto}
+    .sidebar-label{font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);padding:0.75rem 1.5rem 0.3rem}
+    .fn-btn{display:flex;align-items:center;gap:0.65rem;width:100%;padding:0.6rem 1.5rem;background:none;border:none;border-left:3px solid transparent;cursor:pointer;color:var(--text);font-family:var(--font);font-size:0.75rem;text-align:left;transition:background 0.15s}
+    .fn-btn:hover{background:rgba(255,255,255,0.04)}
+    .fn-btn.active{background:rgba(61,220,132,0.08);border-left-color:var(--green);color:var(--green)}
+    .fn-icon{font-size:0.85rem;width:1.1rem;text-align:center;flex-shrink:0}
+    .fn-key{margin-left:auto;font-size:0.58rem;color:var(--muted);border:1px solid var(--border);padding:0.1rem 0.3rem;border-radius:3px}
+
+    /* MAIN */
+    .console-area{display:flex;flex-direction:column;height:calc(100vh - 55px)}
+    .tab-bar{display:flex;align-items:center;background:var(--surface);border-bottom:1px solid var(--border);padding:0 1rem;flex-shrink:0}
+    .tab{font-size:0.72rem;padding:0.65rem 1.2rem;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:color 0.2s;white-space:nowrap}
+    .tab.active{color:var(--text);border-bottom-color:var(--green)}
+
+    /* PANELS */
+    .panels{display:grid;grid-template-rows:1fr 1fr;flex:1;overflow:hidden}
+    .code-panel{border-bottom:1px solid var(--border);overflow-y:auto;position:relative}
+    .output-panel{overflow-y:auto;background:var(--bg)}
+    .panel-header{display:flex;align-items:center;justify-content:space-between;padding:0.55rem 1.25rem;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+    .panel-label{font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
+    .run-btn{display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.85rem;background:var(--green);color:#0e1117;font-family:var(--font);font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;border:none;border-radius:4px;cursor:pointer;transition:opacity 0.2s,transform 0.1s}
+    .run-btn:hover{opacity:0.85;transform:translateY(-1px)}
+    .clear-btn{background:var(--muted) !important;color:var(--text) !important}
+
+    /* CODE */
+    .code-scroll{padding:1.25rem 1.5rem;overflow-x:auto}
+    pre{font-family:var(--font);font-size:0.8rem;line-height:1.95;counter-reset:line}
+    pre .line{display:block;position:relative;padding-left:3.2rem}
+    pre .line::before{content:counter(line);counter-increment:line;position:absolute;left:0;width:2.4rem;text-align:right;color:var(--muted);font-size:0.68rem;user-select:none;border-right:1px solid var(--border);padding-right:0.5rem}
+    .kw{color:var(--purple)}
+    .fn{color:var(--blue)}
+    .str{color:var(--yellow)}
+    .num{color:var(--coral)}
+    .cm{color:var(--muted);font-style:italic}
+    .op{color:var(--coral)}
+    .vr{color:var(--green)}
+
+    /* OUTPUT */
+    .output-scroll{padding:1rem 1.5rem}
+    .out-line{display:flex;align-items:flex-start;gap:0.75rem;padding:0.3rem 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.8rem;animation:fadeIn 0.2s ease both}
+    .out-line:last-child{border-bottom:none}
+    .out-prompt{color:var(--muted);flex-shrink:0;user-select:none;margin-top:1px}
+    .out-section{color:var(--yellow);font-size:0.67rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.75rem 0 0.25rem;display:block;width:100%;border-bottom:1px solid var(--border);margin-bottom:0.25rem}
+
+    /* LIVE CALC */
+    .calc-section{padding:1.25rem 1.5rem;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
+    .calc-label{font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.65rem}
+    .calc-row{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+    .calc-input{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.7rem;color:var(--text);font-family:var(--font);font-size:0.8rem;width:95px;outline:none;transition:border-color 0.2s}
+    .calc-input:focus{border-color:var(--green)}
+    .calc-op{width:75px !important;cursor:pointer}
+    .eq-btn{padding:0.4rem 1rem;background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font);font-size:1rem;cursor:pointer;transition:all 0.15s}
+    .eq-btn:hover{border-color:var(--green);color:var(--green)}
+    .calc-result{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:0.4rem 0.85rem;color:var(--green);font-family:var(--font);font-size:0.8rem;min-width:130px}
+
+    @keyframes fadeIn{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:translateX(0)}}
+
+    @media(max-width:768px){.layout{grid-template-columns:1fr}.sidebar{display:none}.panels{grid-template-rows:auto auto}}
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Console <span>Challenge</span> — JS Calculator</h1>
+  <span class="header-meta">Assignment 5 · 24/02/2026 · Mohammad Salman Allai</span>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Basic Operations</div>
+    <button class="fn-btn active" onclick="showTab('basic',this)">
+      <span class="fn-icon">➕</span> add(a, b) <span class="fn-key">1</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('sub',this)">
+      <span class="fn-icon">➖</span> subtract(a, b) <span class="fn-key">2</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('mul',this)">
+      <span class="fn-icon">✖️</span> multiply(a, b) <span class="fn-key">3</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('div',this)">
+      <span class="fn-icon">➗</span> divide(a, b) <span class="fn-key">4</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('mod',this)">
+      <span class="fn-icon">〰️</span> modulo(a, b) <span class="fn-key">5</span>
+    </button>
+    <div class="sidebar-label" style="margin-top:0.5rem">Advanced Operations</div>
+    <button class="fn-btn" onclick="showTab('pow',this)">
+      <span class="fn-icon">🔺</span> power(base, exp) <span class="fn-key">6</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('sqrt',this)">
+      <span class="fn-icon">√</span> squareRoot(n) <span class="fn-key">7</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('abs',this)">
+      <span class="fn-icon">±</span> absolute(n) <span class="fn-key">8</span>
+    </button>
+    <button class="fn-btn" onclick="showTab('perc',this)">
+      <span class="fn-icon">%</span> percentage(n, t) <span class="fn-key">9</span>
+    </button>
+    <div class="sidebar-label" style="margin-top:0.5rem">Full Program</div>
+    <button class="fn-btn" onclick="showTab('all',this)">
+      <span class="fn-icon">📋</span> All Operations <span class="fn-key">0</span>
+    </button>
+  </aside>
+
+  <!-- CONSOLE AREA -->
+  <div class="console-area">
+
+    <div class="tab-bar">
+      <div class="tab active" id="tab-file">calculator.js</div>
+      <div class="tab" id="tab-all-t">full-program.js</div>
+    </div>
+
+    <div class="panels">
+
+      <!-- CODE PANEL -->
+      <div class="code-panel">
+        <div class="panel-header">
+          <span class="panel-label">📄 Source Code</span>
+          <button class="run-btn" onclick="runCode()">▶ Run</button>
+        </div>
+        <div class="code-scroll"><pre id="codeDisplay"></pre></div>
+      </div>
+
+      <!-- OUTPUT PANEL -->
+      <div class="output-panel">
+        <div class="panel-header">
+          <span class="panel-label">🖥️ Console Output</span>
+          <button class="run-btn clear-btn" onclick="clearOutput()">✕ Clear</button>
+        </div>
+        <div class="output-scroll" id="outputDisplay">
+          <div style="color:var(--muted);font-size:0.75rem;padding:0.5rem 0">
+            // Press ▶ Run to execute the code above...
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end panels -->
+
+    <!-- LIVE CALCULATOR -->
+    <div class="calc-section">
+      <div class="calc-label">⚡ Live Calculator — Try it yourself</div>
+      <div class="calc-row">
+        <input class="calc-input" id="numA" type="number" placeholder="a" value="10"/>
+        <select class="calc-input calc-op" id="calcOp">
+          <option value="+">+ add</option>
+          <option value="-">− sub</option>
+          <option value="*">× mul</option>
+          <option value="/">÷ div</option>
+          <option value="%">% mod</option>
+          <option value="**">^ pow</option>
+          <option value="sqrt">√ a</option>
+          <option value="abs">|a|</option>
+        </select>
+        <input class="calc-input" id="numB" type="number" placeholder="b" value="5"/>
+        <button class="eq-btn" onclick="liveCalc()">=</button>
+        <div class="calc-result" id="calcResult">result appears here</div>
+      </div>
+    </div>
+
+  </div><!-- end console-area -->
+</div><!-- end layout -->
+
+
+<script>
+/* ================================================================
+   CALCULATOR FUNCTIONS
+   These are the actual JS programs written for the assignment
+   ================================================================ */
+
+function add(a, b)           { return a + b; }
+function subtract(a, b)      { return a - b; }
+function multiply(a, b)      { return a * b; }
+function divide(a, b)        { return b === 0 ? "Error: Cannot divide by zero!" : a / b; }
+function modulo(a, b)        { return b === 0 ? "Error: Cannot modulo by zero!" : a % b; }
+function power(base, exp)    { return Math.pow(base, exp); }
+function squareRoot(n)       { return n < 0 ? "Error: Cannot sqrt a negative number!" : Math.sqrt(n); }
+function absolute(n)         { return Math.abs(n); }
+function percentage(num, total) { return total === 0 ? "Error: Total cannot be zero!" : (num / total) * 100; }
+
+/* ================================================================
+   CODE SNIPPETS (displayed with syntax highlighting)
+   ================================================================ */
+const snippets = {
+  basic: [
+    `<span class="cm">// ── ADDITION ─────────────────────────────</span>`,
+    `<span class="cm">// add(a, b) → returns the sum of two numbers</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">add</span>(<span class="vr">a</span>, <span class="vr">b</span>) {`,
+    `  <span class="kw">return</span> <span class="vr">a</span> <span class="op">+</span> <span class="vr">b</span>;`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `<span class="kw">let</span> <span class="vr">result</span> <span class="op">=</span> <span class="fn">add</span>(<span class="num">10</span>, <span class="num">5</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"10 + 5 ="</span>, <span class="vr">result</span>);`,
+    ``,
+    `console.<span class="fn">log</span>(<span class="str">"25 + 75 ="</span>, <span class="fn">add</span>(<span class="num">25</span>, <span class="num">75</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"3.5 + 1.5 ="</span>, <span class="fn">add</span>(<span class="num">3.5</span>, <span class="num">1.5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"-10 + 4 ="</span>, <span class="fn">add</span>(<span class="op">-</span><span class="num">10</span>, <span class="num">4</span>));`,
+  ],
+  sub: [
+    `<span class="cm">// ── SUBTRACTION ──────────────────────────</span>`,
+    `<span class="cm">// subtract(a, b) → returns the difference</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">subtract</span>(<span class="vr">a</span>, <span class="vr">b</span>) {`,
+    `  <span class="kw">return</span> <span class="vr">a</span> <span class="op">-</span> <span class="vr">b</span>;`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"10 - 5 ="</span>, <span class="fn">subtract</span>(<span class="num">10</span>, <span class="num">5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"100 - 45 ="</span>, <span class="fn">subtract</span>(<span class="num">100</span>, <span class="num">45</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"3 - 7 ="</span>, <span class="fn">subtract</span>(<span class="num">3</span>, <span class="num">7</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"0 - 5 ="</span>, <span class="fn">subtract</span>(<span class="num">0</span>, <span class="num">5</span>));`,
+  ],
+  mul: [
+    `<span class="cm">// ── MULTIPLICATION ───────────────────────</span>`,
+    `<span class="cm">// multiply(a, b) → returns the product</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">multiply</span>(<span class="vr">a</span>, <span class="vr">b</span>) {`,
+    `  <span class="kw">return</span> <span class="vr">a</span> <span class="op">*</span> <span class="vr">b</span>;`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"10 × 5 ="</span>, <span class="fn">multiply</span>(<span class="num">10</span>, <span class="num">5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"7 × 8 ="</span>, <span class="fn">multiply</span>(<span class="num">7</span>, <span class="num">8</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"2.5 × 4 ="</span>, <span class="fn">multiply</span>(<span class="num">2.5</span>, <span class="num">4</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"-3 × 6 ="</span>, <span class="fn">multiply</span>(<span class="op">-</span><span class="num">3</span>, <span class="num">6</span>));`,
+  ],
+  div: [
+    `<span class="cm">// ── DIVISION ─────────────────────────────</span>`,
+    `<span class="cm">// divide(a, b) → returns quotient</span>`,
+    `<span class="cm">// includes guard against dividing by zero</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">divide</span>(<span class="vr">a</span>, <span class="vr">b</span>) {`,
+    `  <span class="kw">if</span> (<span class="vr">b</span> <span class="op">===</span> <span class="num">0</span>) {`,
+    `    <span class="kw">return</span> <span class="str">"Error: Cannot divide by zero!"</span>;`,
+    `  }`,
+    `  <span class="kw">return</span> <span class="vr">a</span> <span class="op">/</span> <span class="vr">b</span>;`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"10 ÷ 2 ="</span>, <span class="fn">divide</span>(<span class="num">10</span>, <span class="num">2</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"15 ÷ 4 ="</span>, <span class="fn">divide</span>(<span class="num">15</span>, <span class="num">4</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"9 ÷ 0 ="</span>, <span class="fn">divide</span>(<span class="num">9</span>, <span class="num">0</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"25 ÷ 5 ="</span>, <span class="fn">divide</span>(<span class="num">25</span>, <span class="num">5</span>));`,
+  ],
+  mod: [
+    `<span class="cm">// ── MODULO ───────────────────────────────</span>`,
+    `<span class="cm">// modulo(a, b) → returns remainder of a ÷ b</span>`,
+    `<span class="cm">// useful for odd/even check, cycling, etc.</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">modulo</span>(<span class="vr">a</span>, <span class="vr">b</span>) {`,
+    `  <span class="kw">if</span> (<span class="vr">b</span> <span class="op">===</span> <span class="num">0</span>) {`,
+    `    <span class="kw">return</span> <span class="str">"Error: Cannot modulo by zero!"</span>;`,
+    `  }`,
+    `  <span class="kw">return</span> <span class="vr">a</span> <span class="op">%</span> <span class="vr">b</span>;`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"10 % 3 ="</span>, <span class="fn">modulo</span>(<span class="num">10</span>, <span class="num">3</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"7 % 2 ="</span>, <span class="fn">modulo</span>(<span class="num">7</span>, <span class="num">2</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"100 % 7 ="</span>, <span class="fn">modulo</span>(<span class="num">100</span>, <span class="num">7</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"Is 4 even?"</span>, <span class="fn">modulo</span>(<span class="num">4</span>, <span class="num">2</span>) <span class="op">===</span> <span class="num">0</span>);`,
+  ],
+  pow: [
+    `<span class="cm">// ── POWER / EXPONENT ─────────────────────</span>`,
+    `<span class="cm">// power(base, exp) → returns base raised to exp</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">power</span>(<span class="vr">base</span>, <span class="vr">exp</span>) {`,
+    `  <span class="kw">return</span> Math.<span class="fn">pow</span>(<span class="vr">base</span>, <span class="vr">exp</span>);`,
+    `  <span class="cm">// Alternative: return base ** exp;</span>`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"2 ^ 8 ="</span>, <span class="fn">power</span>(<span class="num">2</span>, <span class="num">8</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"5 ^ 3 ="</span>, <span class="fn">power</span>(<span class="num">5</span>, <span class="num">3</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"3 ^ 0 ="</span>, <span class="fn">power</span>(<span class="num">3</span>, <span class="num">0</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"10 ^ 2 ="</span>, <span class="fn">power</span>(<span class="num">10</span>, <span class="num">2</span>));`,
+  ],
+  sqrt: [
+    `<span class="cm">// ── SQUARE ROOT ──────────────────────────</span>`,
+    `<span class="cm">// squareRoot(n) → returns √n</span>`,
+    `<span class="cm">// guard: sqrt of negative is not a real number</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">squareRoot</span>(<span class="vr">n</span>) {`,
+    `  <span class="kw">if</span> (<span class="vr">n</span> <span class="op">&lt;</span> <span class="num">0</span>) {`,
+    `    <span class="kw">return</span> <span class="str">"Error: Cannot sqrt a negative number!"</span>;`,
+    `  }`,
+    `  <span class="kw">return</span> Math.<span class="fn">sqrt</span>(<span class="vr">n</span>);`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"√25 ="</span>,  <span class="fn">squareRoot</span>(<span class="num">25</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"√144 ="</span>, <span class="fn">squareRoot</span>(<span class="num">144</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"√2 ="</span>,   <span class="fn">squareRoot</span>(<span class="num">2</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"√-9 ="</span>,  <span class="fn">squareRoot</span>(<span class="op">-</span><span class="num">9</span>));`,
+  ],
+  abs: [
+    `<span class="cm">// ── ABSOLUTE VALUE ───────────────────────</span>`,
+    `<span class="cm">// absolute(n) → removes negative sign from n</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">absolute</span>(<span class="vr">n</span>) {`,
+    `  <span class="kw">return</span> Math.<span class="fn">abs</span>(<span class="vr">n</span>);`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"|−42| ="</span>,  <span class="fn">absolute</span>(<span class="op">-</span><span class="num">42</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"|7| ="</span>,    <span class="fn">absolute</span>(<span class="num">7</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"|−3.5| ="</span>,<span class="fn">absolute</span>(<span class="op">-</span><span class="num">3.5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"|0| ="</span>,    <span class="fn">absolute</span>(<span class="num">0</span>));`,
+  ],
+  perc: [
+    `<span class="cm">// ── PERCENTAGE ───────────────────────────</span>`,
+    `<span class="cm">// percentage(num, total) → "what % is num of total?"</span>`,
+    ``,
+    `<span class="kw">function</span> <span class="fn">percentage</span>(<span class="vr">num</span>, <span class="vr">total</span>) {`,
+    `  <span class="kw">if</span> (<span class="vr">total</span> <span class="op">===</span> <span class="num">0</span>) {`,
+    `    <span class="kw">return</span> <span class="str">"Error: Total cannot be zero!"</span>;`,
+    `  }`,
+    `  <span class="kw">return</span> (<span class="vr">num</span> <span class="op">/</span> <span class="vr">total</span>) <span class="op">*</span> <span class="num">100</span>;`,
+    `}`,
+    ``,
+    `<span class="cm">// ── Test Cases ────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"50 of 200 ="</span>, <span class="fn">percentage</span>(<span class="num">50</span>, <span class="num">200</span>) <span class="op">+</span> <span class="str">"%"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"1 of 4 ="</span>,   <span class="fn">percentage</span>(<span class="num">1</span>, <span class="num">4</span>) <span class="op">+</span> <span class="str">"%"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"35 of 50 ="</span>, <span class="fn">percentage</span>(<span class="num">35</span>, <span class="num">50</span>) <span class="op">+</span> <span class="str">"%"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"5 of 0 ="</span>,   <span class="fn">percentage</span>(<span class="num">5</span>, <span class="num">0</span>));`,
+  ],
+  all: [
+    `<span class="cm">// ════════════════════════════════════════════</span>`,
+    `<span class="cm">// JS Calculator — All Operations</span>`,
+    `<span class="cm">// Assignment 5 · Mohammad Salman Allai</span>`,
+    `<span class="cm">// ════════════════════════════════════════════</span>`,
+    ``,
+    `<span class="cm">// ── Function Definitions ─────────────────────</span>`,
+    `<span class="kw">function</span> <span class="fn">add</span>(<span class="vr">a</span>,<span class="vr">b</span>)           { <span class="kw">return</span> <span class="vr">a</span><span class="op">+</span><span class="vr">b</span>; }`,
+    `<span class="kw">function</span> <span class="fn">subtract</span>(<span class="vr">a</span>,<span class="vr">b</span>)      { <span class="kw">return</span> <span class="vr">a</span><span class="op">-</span><span class="vr">b</span>; }`,
+    `<span class="kw">function</span> <span class="fn">multiply</span>(<span class="vr">a</span>,<span class="vr">b</span>)      { <span class="kw">return</span> <span class="vr">a</span><span class="op">*</span><span class="vr">b</span>; }`,
+    `<span class="kw">function</span> <span class="fn">divide</span>(<span class="vr">a</span>,<span class="vr">b</span>)        { <span class="kw">return</span> <span class="vr">b</span><span class="op">===</span><span class="num">0</span> <span class="op">?</span> <span class="str">"Err:÷0"</span> <span class="op">:</span> <span class="vr">a</span><span class="op">/</span><span class="vr">b</span>; }`,
+    `<span class="kw">function</span> <span class="fn">modulo</span>(<span class="vr">a</span>,<span class="vr">b</span>)        { <span class="kw">return</span> <span class="vr">b</span><span class="op">===</span><span class="num">0</span> <span class="op">?</span> <span class="str">"Err:%0"</span> <span class="op">:</span> <span class="vr">a</span><span class="op">%</span><span class="vr">b</span>; }`,
+    `<span class="kw">function</span> <span class="fn">power</span>(<span class="vr">b</span>,<span class="vr">e</span>)          { <span class="kw">return</span> Math.<span class="fn">pow</span>(<span class="vr">b</span>,<span class="vr">e</span>); }`,
+    `<span class="kw">function</span> <span class="fn">squareRoot</span>(<span class="vr">n</span>)      { <span class="kw">return</span> <span class="vr">n</span><span class="op">&lt;</span><span class="num">0</span> <span class="op">?</span> <span class="str">"Err:√-"</span> <span class="op">:</span> Math.<span class="fn">sqrt</span>(<span class="vr">n</span>); }`,
+    `<span class="kw">function</span> <span class="fn">absolute</span>(<span class="vr">n</span>)        { <span class="kw">return</span> Math.<span class="fn">abs</span>(<span class="vr">n</span>); }`,
+    `<span class="kw">function</span> <span class="fn">percentage</span>(<span class="vr">n</span>,<span class="vr">t</span>)    { <span class="kw">return</span> <span class="vr">t</span><span class="op">===</span><span class="num">0</span> <span class="op">?</span> <span class="str">"Err:/0"</span> <span class="op">:</span> (<span class="vr">n</span><span class="op">/</span><span class="vr">t</span>)<span class="op">*</span><span class="num">100</span>; }`,
+    ``,
+    `<span class="cm">// ── Test All ──────────────────────────────────</span>`,
+    `console.<span class="fn">log</span>(<span class="str">"ADDITION"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"10 + 5 ="</span>,   <span class="fn">add</span>(<span class="num">10</span>,<span class="num">5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"25 + 75 ="</span>,  <span class="fn">add</span>(<span class="num">25</span>,<span class="num">75</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"SUBTRACTION"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"10 - 5 ="</span>,   <span class="fn">subtract</span>(<span class="num">10</span>,<span class="num">5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"3 - 7 ="</span>,    <span class="fn">subtract</span>(<span class="num">3</span>,<span class="num">7</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"MULTIPLICATION"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"10 × 5 ="</span>,   <span class="fn">multiply</span>(<span class="num">10</span>,<span class="num">5</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"7 × 8 ="</span>,    <span class="fn">multiply</span>(<span class="num">7</span>,<span class="num">8</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"DIVISION"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"10 ÷ 2 ="</span>,   <span class="fn">divide</span>(<span class="num">10</span>,<span class="num">2</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"9 ÷ 0 ="</span>,    <span class="fn">divide</span>(<span class="num">9</span>,<span class="num">0</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"MODULO"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"10 % 3 ="</span>,   <span class="fn">modulo</span>(<span class="num">10</span>,<span class="num">3</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"POWER"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"2^8 ="</span>,      <span class="fn">power</span>(<span class="num">2</span>,<span class="num">8</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"SQUARE ROOT"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"√144 ="</span>,     <span class="fn">squareRoot</span>(<span class="num">144</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"√-9 ="</span>,      <span class="fn">squareRoot</span>(<span class="op">-</span><span class="num">9</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"ABSOLUTE"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"|−42| ="</span>,    <span class="fn">absolute</span>(<span class="op">-</span><span class="num">42</span>));`,
+    `console.<span class="fn">log</span>(<span class="str">"PERCENTAGE"</span>);`,
+    `console.<span class="fn">log</span>(<span class="str">"50 of 200 ="</span>,<span class="fn">percentage</span>(<span class="num">50</span>,<span class="num">200</span>)<span class="op">+</span><span class="str">"%"</span>);`,
+  ]
+};
+
+/* outputs per tab */
+const outputs = {
+  basic: [
+    {t:'log', label:'10 + 5 =',    val:'15'},
+    {t:'log', label:'25 + 75 =',   val:'100'},
+    {t:'log', label:'3.5 + 1.5 =', val:'5'},
+    {t:'log', label:'-10 + 4 =',   val:'-6'},
+  ],
+  sub: [
+    {t:'log', label:'10 - 5 =',   val:'5'},
+    {t:'log', label:'100 - 45 =', val:'55'},
+    {t:'log', label:'3 - 7 =',    val:'-4'},
+    {t:'log', label:'0 - 5 =',    val:'-5'},
+  ],
+  mul: [
+    {t:'log', label:'10 × 5 =',   val:'50'},
+    {t:'log', label:'7 × 8 =',    val:'56'},
+    {t:'log', label:'2.5 × 4 =',  val:'10'},
+    {t:'log', label:'-3 × 6 =',   val:'-18'},
+  ],
+  div: [
+    {t:'log',   label:'10 ÷ 2 =', val:'5'},
+    {t:'log',   label:'15 ÷ 4 =', val:'3.75'},
+    {t:'error', label:'9 ÷ 0 =',  val:'Error: Cannot divide by zero!'},
+    {t:'log',   label:'25 ÷ 5 =', val:'5'},
+  ],
+  mod: [
+    {t:'log', label:'10 % 3 =',   val:'1'},
+    {t:'log', label:'7 % 2 =',    val:'1'},
+    {t:'log', label:'100 % 7 =',  val:'2'},
+    {t:'log', label:'Is 4 even?', val:'true'},
+  ],
+  pow: [
+    {t:'log', label:'2 ^ 8 =',  val:'256'},
+    {t:'log', label:'5 ^ 3 =',  val:'125'},
+    {t:'log', label:'3 ^ 0 =',  val:'1'},
+    {t:'log', label:'10 ^ 2 =', val:'100'},
+  ],
+  sqrt: [
+    {t:'log',   label:'√25 =',  val:'5'},
+    {t:'log',   label:'√144 =', val:'12'},
+    {t:'log',   label:'√2 =',   val:'1.4142135623730951'},
+    {t:'error', label:'√-9 =',  val:'Error: Cannot sqrt a negative number!'},
+  ],
+  abs: [
+    {t:'log', label:'|−42| =',  val:'42'},
+    {t:'log', label:'|7| =',    val:'7'},
+    {t:'log', label:'|−3.5| =', val:'3.5'},
+    {t:'log', label:'|0| =',    val:'0'},
+  ],
+  perc: [
+    {t:'log',   label:'50 of 200 =', val:'25%'},
+    {t:'log',   label:'1 of 4 =',    val:'25%'},
+    {t:'log',   label:'35 of 50 =',  val:'70%'},
+    {t:'error', label:'5 of 0 =',    val:'Error: Total cannot be zero!'},
+  ],
+  all: [
+    {t:'section', label:'ADDITION'},
+    {t:'log', label:'10 + 5 =',    val:'15'},
+    {t:'log', label:'25 + 75 =',   val:'100'},
+    {t:'section', label:'SUBTRACTION'},
+    {t:'log', label:'10 - 5 =',    val:'5'},
+    {t:'log', label:'3 - 7 =',     val:'-4'},
+    {t:'section', label:'MULTIPLICATION'},
+    {t:'log', label:'10 × 5 =',    val:'50'},
+    {t:'log', label:'7 × 8 =',     val:'56'},
+    {t:'section', label:'DIVISION'},
+    {t:'log', label:'10 ÷ 2 =',    val:'5'},
+    {t:'error', label:'9 ÷ 0 =',   val:'Error: Err:÷0'},
+    {t:'section', label:'MODULO'},
+    {t:'log', label:'10 % 3 =',    val:'1'},
+    {t:'section', label:'POWER'},
+    {t:'log', label:'2^8 =',       val:'256'},
+    {t:'section', label:'SQUARE ROOT'},
+    {t:'log', label:'√144 =',      val:'12'},
+    {t:'error', label:'√-9 =',     val:'Error: Err:√-'},
+    {t:'section', label:'ABSOLUTE'},
+    {t:'log', label:'|−42| =',     val:'42'},
+    {t:'section', label:'PERCENTAGE'},
+    {t:'log', label:'50 of 200 =', val:'25%'},
+  ]
+};
+
+/* ── UI ── */
+let currentTab = 'basic';
+
+function showTab(name, btn) {
+  currentTab = name;
+  // Update code panel
+  const lines = snippets[name];
+  document.getElementById('codeDisplay').innerHTML =
+    lines.map(l => `<span class="line">${l}</span>`).join('\n');
+  // Sidebar active state
+  document.querySelectorAll('.fn-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Tab labels
+  const isAll = name === 'all';
+  document.getElementById('tab-file').className  = 'tab' + (isAll ? '' : ' active');
+  document.getElementById('tab-all-t').className = 'tab' + (isAll ? ' active' : '');
+  // Clear output
+  document.getElementById('outputDisplay').innerHTML =
+    `<div style="color:var(--muted);font-size:0.75rem;padding:0.5rem 0">// Press ▶ Run to execute...</div>`;
+}
+
+function runCode() {
+  const outEl = document.getElementById('outputDisplay');
+  outEl.innerHTML = '';
+  const lines = outputs[currentTab];
+  lines.forEach((line, i) => {
+    setTimeout(() => {
+      if (line.t === 'section') {
+        outEl.innerHTML += `<span class="out-section">${line.label}</span>`;
+      } else {
+        const color = line.t === 'error' ? 'var(--coral)' : 'var(--green)';
+        outEl.innerHTML += `
+          <div class="out-line">
+            <span class="out-prompt">&gt;</span>
+            <span style="color:var(--text)">${line.label}</span>
+            <span style="color:${color};margin-left:auto;padding-left:1rem">${line.val}</span>
+          </div>`;
+      }
+      outEl.scrollTop = outEl.scrollHeight;
+    }, i * 110);
+  });
+}
+
+function clearOutput() {
+  document.getElementById('outputDisplay').innerHTML =
+    `<div style="color:var(--muted);font-size:0.75rem;padding:0.5rem 0">// Console cleared.</div>`;
+}
+
+function liveCalc() {
+  const a  = parseFloat(document.getElementById('numA').value);
+  const b  = parseFloat(document.getElementById('numB').value);
+  const op = document.getElementById('calcOp').value;
+  const el = document.getElementById('calcResult');
+  let ans;
+  switch(op) {
+    case '+':    ans = add(a, b); break;
+    case '-':    ans = subtract(a, b); break;
+    case '*':    ans = multiply(a, b); break;
+    case '/':    ans = divide(a, b); break;
+    case '%':    ans = modulo(a, b); break;
+    case '**':   ans = power(a, b); break;
+    case 'sqrt': ans = squareRoot(a); break;
+    case 'abs':  ans = absolute(a); break;
+    default:     ans = '?';
+  }
+  el.textContent = ans;
+  el.style.color = String(ans).startsWith('Error') ? 'var(--coral)' : 'var(--green)';
+}
+
+// Init
+showTab('basic', document.querySelector('.fn-btn'));
+</script>
+</body>
+</html>
